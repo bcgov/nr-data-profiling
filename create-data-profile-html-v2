@@ -1,0 +1,118 @@
+import yaml
+import oracledb
+import psycopg2
+import os
+import pandas
+import pandas_profiling  
+
+config_file = 'config.yaml'
+
+html_dir = 'C:\\Users\\AMICHEL\\Downloads'
+if not os.path.exists(html_dir):
+    os.makedirs(html_dir)
+
+# json_dir = '<Place your directory name for html>'
+# if not os.path.exists(json_dir):
+    # os.makedirs(json_dir)
+
+def load_configuration(config_file):
+    with open(config_file, 'r') as file:
+        config = yaml.safe_load(file)
+
+    username = config['db_username']
+    password = config['db_password']
+    host = config['db_host']
+    port = config['db_port']
+    service_name = config['service_name']
+    dbms = config['dbms']
+
+    return username, password, host, port, service_name, dbms
+
+def connect_to_postgres(username, password, host, port, service_name):
+        try:
+            connection_string = f"host={host} port={port} dbname={service_name} user={username} password={password}"
+
+            con = psycopg2.connect(connection_string)
+
+            cursor = con.cursor()
+
+            return con, cursor
+
+        except (psycopg2.Error, Exception) as e:
+            print("Error connecting to PostgreSQL:", e)
+            return None, None
+
+def connect_to_oracle(username, password, host, port, service_name):
+    
+        try:
+
+            dsn = oracledb.makedsn(host=host, port=port, service_name=service_name)
+
+            con = oracledb.connect(user=username, password=password, dsn=dsn)
+        
+            cursor = con.cursor()
+
+            return con, cursor
+
+        except (oracledb.Error, Exception) as e:
+            print("Error connecting to Oracle:", e)
+            return None, None
+        
+def run_database_query(con, cursor):
+     scope_sql = """
+        SELECT
+            owner,
+            table_name
+        FROM
+            all_tables
+        WHERE
+            owner = 'MTA'
+        AND
+            table_name like 'MTA%'
+        AND    
+            tablespace_name = 'MTA_TABLES'
+        ORDER BY table_name    
+        """
+     cursor.execute(scope_sql)
+     
+     for row in cursor:
+        schema = row[0]
+        tablename = row[1]
+        print('\033[91m', schema, '>>>', tablename, '\033[0m')
+
+        query = """SELECT * FROM %s.%s""" % (schema, tablename)
+        df = pandas.read_sql(query, con=connection)
+
+        if len(df) > 0:
+            prf = ProfileReport(df, minimal=True, title=schema + '.' + tablename)
+            prf.to_file(os.path.join(html_dir, schema + '.' + tablename + '.html'))
+            # prf.to_file(os.path.join(json_dir, schema + '.' + tablename + '.json'))
+
+        continue
+     
+def main():
+    try:
+        username, password, host, port, service_name, dbms = load_configuration(config_file)
+
+        if dbms == 'Oracle':
+            con, cursor = connect_to_oracle(username, password, host, port, service_name)
+            if con and cursor:
+                run_database_query(con, cursor)
+                cursor.close()
+                con.close()
+
+        elif dbms == 'PostgreSQL':
+            con, cursor = connect_to_postgres(username, password, host, port, service_name)
+            if con and cursor:
+                run_database_query(con, cursor)
+                cursor.close()
+                con.close()
+
+        else:
+            print("Unsupported DBMS:", dbms)
+
+    except Exception as e:
+        print("Other error:", str(e))
+
+if __name__ == '__main__':
+    main()
