@@ -19,5 +19,5 @@ For data profiling:
 * new function for PostgreSQL database connections
 * data type handling for dates and timestamps 
 * using SQLAlchemy wrapping to fix multimethod.DispatchError
-* all parameters go in the .env file
+* all parameters go in .env
 * error handling
