@@ -21,3 +21,9 @@ For data profiling:
 * using SQLAlchemy wrapping to fix multimethod.DispatchError
 * all parameters go in .env
 * error handling
+
+
+## Next steps: 
+* format & publish .html files on Teams 
+* file structure based on Ministry 
+* add function for OpenShift database connections 
