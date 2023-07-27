@@ -20,10 +20,10 @@ For data profiling:
 * data type handling for dates and timestamps 
 * using SQLAlchemy wrapping to fix multimethod.DispatchError
 * all parameters go in .env
-* error handling
+* removing unwanted html
 
 
 ## Next steps: 
-* format & publish .html files on Teams 
+* publish .html files on Teams 
 * file structure based on Ministry 
 * add function for OpenShift database connections 
